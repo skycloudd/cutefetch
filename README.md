@@ -5,3 +5,5 @@
 ![cutefetch](cutefetch.png)
 
 (only the arch logo for now)
+
+(more types of info coming soon™️)
