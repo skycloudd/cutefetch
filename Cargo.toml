@@ -8,7 +8,7 @@ repository = "https://github.com/skycloudd/cutefetch"
 readme = "README.md"
 keywords = ["cli", "terminal", "system", "fetch", "neofetch"]
 categories = ["command-line-utilities"]
-exclude = ["*.png"]
+include = ["**/*.rs", "Cargo.toml"]
 
 [dependencies]
 clap = { version = "4.2.2", features = ["derive"] }
