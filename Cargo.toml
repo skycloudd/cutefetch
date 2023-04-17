@@ -12,5 +12,7 @@ include = ["**/*.rs", "Cargo.toml"]
 
 [dependencies]
 colored = "2.0.0"
-sysinfo = "0.28.4"
+machine-info = "1.0.9"
+once_cell = "1.17.1"
+uptime_lib = "0.2.2"
 whoami = { version = "1.4.0", default-features = false }

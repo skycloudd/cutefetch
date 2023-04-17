@@ -1,78 +1,98 @@
 use colored::*;
-use sysinfo::{System, SystemExt};
-
-const SEPARATOR: &str = " ";
+use once_cell::sync::Lazy;
 
 fn main() {
-    let mut sys = System::new_all();
+    let mut machine = machine_info::Machine::new();
 
-    sys.refresh_all();
+    let system_info = machine.system_info();
 
     let top_line = InfoLine::Top {
         username: whoami::username(),
         hostname: whoami::hostname(),
     };
+
     let second_line = InfoLine::Separator(top_line.len());
+
     let os_line = InfoLine::Normal {
         label: "os".to_string(),
         value: format!("{} {}", whoami::distro(), whoami::arch()),
     };
+
     let kernel_line = InfoLine::Normal {
         label: "kernel".to_string(),
-        value: sys.kernel_version().unwrap_or("unknown".to_string()),
+        value: system_info.kernel_version,
     };
+
     let uptime_line = InfoLine::Normal {
         label: "uptime".to_string(),
-        value: format!("{}h {:02}m", sys.uptime() / 3600, sys.uptime() / 60 % 60),
+        value: {
+            match uptime_lib::get() {
+                Ok(uptime) => {
+                    format!(
+                        "{}h {:02}m",
+                        uptime.as_secs() / 3600,
+                        (uptime.as_secs() % 3600) / 60
+                    )
+                }
+                Err(err) => {
+                    eprintln!("{}", err);
+                    std::process::exit(1);
+                }
+            }
+        },
     };
 
-    let info_lines = vec![
-        &top_line,
-        &second_line,
-        &os_line,
-        &kernel_line,
-        &uptime_line,
+    let cpu_line = InfoLine::Normal {
+        label: "cpu".to_string(),
+        value: format!("{}", system_info.processor.brand),
+    };
+
+    let gpu_lines = system_info.graphics.iter().map(|gpu| InfoLine::Normal {
+        label: "gpu".to_string(),
+        value: format!("{}", gpu.name),
+    });
+
+    let ram_line = InfoLine::Normal {
+        label: "memory".to_string(),
+        value: match machine.system_status() {
+            Ok(status) => format!(
+                "{:.2}MiB / {:.2}MiB",
+                status.memory / 1024,
+                system_info.memory / 1024 / 1024
+            ),
+            Err(err) => format!("{}", err),
+        },
+    };
+
+    let mut info_lines = vec![
+        top_line,
+        second_line,
+        os_line,
+        kernel_line,
+        uptime_line,
+        cpu_line,
     ];
 
-    let logo = vec![
-        "      /#\\".bright_blue(),
-        "     /###\\".bright_blue(),
-        "    /p^###\\".bright_blue(),
-        "   /##P^q##\\".bright_blue(),
-        "  /##(   )##\\".bright_blue(),
-        " /###P   q#,^\\".bright_blue(),
-        "/P^         ^q\\".bright_blue(),
-    ];
+    info_lines.extend(gpu_lines);
+    info_lines.push(ram_line);
 
-    let longest_info_line = info_lines
-        .iter()
-        .clone()
-        .map(|info_line| info_line.len())
-        .max()
-        .unwrap();
+    let logo = &ARCH_LOGO;
 
-    for i in 0..info_lines.len().max(logo.len()) {
-        let info_line = info_lines.get(i);
+    let longest_first_line = logo.iter().clone().map(|line| line.len()).max().unwrap();
+
+    for i in 0..logo.len().max(info_lines.len()) {
         let empty = "".normal();
         let logo_line = logo.get(i).unwrap_or(&empty);
+        let info_line = info_lines.get(i);
 
-        if let Some(info_line) = info_line {
-            let padding = longest_info_line - info_line.len();
-            println!(
-                "{}{}{}{}",
-                info_line,
-                " ".repeat(padding),
-                SEPARATOR,
-                logo_line
-            );
-        } else {
-            println!(
-                "{}{}{}",
-                " ".repeat(longest_info_line),
-                SEPARATOR,
-                logo_line
-            );
-        }
+        let logo_padding = longest_first_line - logo_line.len();
+
+        println!(
+            "{}{}{}",
+            logo_line,
+            " ".repeat(logo_padding + 1),
+            info_line.unwrap_or(&InfoLine::Separator(0)),
+        );
     }
 }
 
@@ -103,3 +123,15 @@ impl std::fmt::Display for InfoLine {
         }
     }
 }
+
+static ARCH_LOGO: Lazy<[ColoredString; 7]> = Lazy::new(|| {
+    [
+        "      /#\\".bright_blue(),
+        "     /###\\".bright_blue(),
+        "    /p^###\\".bright_blue(),
+        "   /##P^q##\\".bright_blue(),
+        "  /##(   )##\\".bright_blue(),
+        " /###P   q#,^\\".bright_blue(),
+        "/P^         ^q\\".bright_blue(),
+    ]
+});
