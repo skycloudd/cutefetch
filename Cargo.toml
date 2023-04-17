@@ -1,6 +1,6 @@
 [package]
 name = "cutefetch"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "A cute and simple system information tool like neofetch"
@@ -11,7 +11,6 @@ categories = ["command-line-utilities"]
 include = ["**/*.rs", "Cargo.toml"]
 
 [dependencies]
-clap = { version = "4.2.2", features = ["derive"] }
 colored = "2.0.0"
 sysinfo = "0.28.4"
-whoami = "1.4.0"
+whoami = { version = "1.4.0", default-features = false }
